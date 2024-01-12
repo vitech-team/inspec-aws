@@ -115,6 +115,51 @@ class AwsCloudFrontDistribution < AwsResourceBase
     disallowed?(@custom_origin_ssl_protocols)
   end
 
+  # This function allows to collect certain property of default behavior and all other cache behaviors.
+  # This allows to assert custom property across all the behaviors
+  # @param property specifies the property to collect
+  # @param distinct specifies whether to return only unique collected values
+  def collect_for_each_behavior(property, distinct)
+    config = @resp.distribution.distribution_config
+    result = [config.default_cache_behavior[property]]
+    # If there are additional cache behaviors, add them to the list
+    if config.cache_behaviors.quantity > 0
+      config.cache_behaviors.items.each do |behavior|
+        result << behavior[property]
+      end
+      if distinct
+        result = result.uniq.sort
+      end
+    end
+    result  # Return the result array
+  end
+
+  # Collects property "compression_enabled" for each behavior
+  def compression_enabled(distinct = false)
+    collect_for_each_behavior(:compress, distinct)
+  end
+
+  # Collects property "allowed_methods" for each behavior
+  def allowed_methods(distinct = false)
+    collect_for_each_behavior(:allowed_methods, distinct)
+  end
+
+  # Collects property "cache_policy_id" for each behavior
+  def cache_policy_id(distinct = false)
+    collect_for_each_behavior(:cache_policy_id, distinct)
+  end
+
+  # Returns geo restrictions for this distribution
+  def geo_restrictions
+    config = @resp.distribution.distribution_config
+    config.restrictions.geo_restriction
+  end
+
+  # Returns comment for this distribution
+  def comment
+    @resp.distribution.distribution_config.comment
+  end
+
   def to_s
     "AWS CloudFront Distribution #{@distribution_id}"
   end
